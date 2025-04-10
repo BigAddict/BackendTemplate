@@ -1,14 +1,13 @@
 from pydantic_settings import BaseSettings
-from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from pathlib import Path
 import logging
 import os
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 class Setting(BaseSettings):
-    db_url: str = quote_plus(os.getenv("DATABASE_URL"))
+    db_url: str = (os.getenv("DATABASE_URL"))
 
     secret_key: str = os.getenv("SECRET_KEY")
     algorithm: str = os.getenv("ALGORITHM")
@@ -20,6 +19,11 @@ class Setting(BaseSettings):
     logging_level: str = os.getenv("LOGGING_LEVEL")
     logging_format: str = os.getenv("LOGGING_FORMAT")
     logging_enabled: bool = os.getenv("LOGGING_ENABLED")
+
+    smtp_server: str = os.getenv("SMTP_SERVER")
+    smtp_port: int = os.getenv("SMTP_PORT")
+    smtp_username: str = os.getenv("SMTP_USERNAME")
+    smtp_password: str = os.getenv("SMTP_PASSWORD")
 
 def get_settings():
     return Setting()
