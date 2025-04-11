@@ -2,13 +2,14 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
+from src.core.init_db import create_db_and_tables, seed_roles_and_permissions
 from src.core.config import AppLogging, get_settings
 from src.core.security.auth import JWTAuth
-from src.core.init_db import create_db_and_tables
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    seed_roles_and_permissions()
     yield
 
 settings = get_settings()
