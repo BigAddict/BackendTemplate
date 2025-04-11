@@ -15,4 +15,6 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "python-jose[cryptography]>=3.4.0",
     "aiosmtplib>=4.0.0",
+    "phonenumbers>=9.0.3",
+    "alembic>=1.15.2",
 ]

@@ -43,9 +43,18 @@ async def get_token_payload(token: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+async def get_device_type(request: Request) -> str:
+    device_type = request.headers.get('X-Device-Type', "web").lower()
+    if device_type == "mobile":
+        return "mobile"
+    elif device_type == "desktop":
+        return "desktop"
+    else:
+        return "web"
+    
 async def get_current_user(request: Request, session: Session = Depends(get_session)) -> Optional[User]:
     try:
-        device_type = request.headers.get('X-Device-Type', "web").lower()
+        device_type = await get_device_type(request)
         if device_type == "web":
             token = request.cookies.get("access_token")
         else:
