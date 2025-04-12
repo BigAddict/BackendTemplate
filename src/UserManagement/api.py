@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from sqlmodel import Session, select
-from urllib.parse import urlencode
 
-from src.core.security.auth import get_password_hash, get_current_user
+from src.core.security.auth import get_password_hash, get_current_user, get_device_type
 from src.UserManagement.schemas import UserCreate, UserVerify
 from src.core.utils import send_verification_email
-from src.UserManagement.models import User, Role
+from src.UserManagement.models import User, Role, TempCode
 from src.core.database import get_session
 from src.core.config import get_settings
 
@@ -25,7 +24,9 @@ router = APIRouter(
 async def register_user(
     user: UserCreate,
     request: Request,
+    response: Response,
     session: Session = Depends(get_session),
+    device: str = Depends(get_device_type)
 ):
     """
     Register a new user and send a verification email.
@@ -63,6 +64,10 @@ async def register_user(
         session.delete(new_user)
         session.commit()
         raise HTTPException(status_code=500, detail=message)
+    
+    if device == "web":
+        response.set_cookie(key="temp_code")
+
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={
