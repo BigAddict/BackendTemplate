@@ -15,17 +15,21 @@ async def lifespan(app: FastAPI):
     yield
 
 settings = get_settings()
+
 app = FastAPI(title=settings.application_name,
               version=settings.application_version,
               docs_url="/docs",
               lifespan=lifespan)
+
 app.add_middleware(DeviceTypeMiddleware)
 app.add_middleware(AuthenticationMiddleware, backend=JWTAuth())
-api_router = APIRouter(prefix="/api/v1", tags=["Default"])
 
-@api_router.get("/healthcheck")
+api_router = APIRouter(prefix="/api/v1")
+
+@app.get("/healthcheck", tags=["Default"])
 async def healthcheck():
     return {"status": "healthy"}
 
+api_router.include_router(user_router)
+
 app.include_router(api_router)
-app.include_router(user_router)

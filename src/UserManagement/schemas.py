@@ -13,3 +13,14 @@ class UserCreate(UserBase):
 
 class UserVerify(BaseModel):
     code: int
+
+class UserUpdate(BaseModel):
+    username: str
+    email: EmailStr
+    phone_number: PhoneNumber
+
+class UserResponse(BaseModel):
+    username: str
+    email: EmailStr
+    phone_number: PhoneNumber
+    created_at: datetime
