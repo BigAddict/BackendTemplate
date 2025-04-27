@@ -186,7 +186,8 @@ async def delete_user(
             detail={'error': 'User not found.'}
         )
     
-    session.delete(user)
+    user.is_active = False
+    user.is_verified = False
     session.commit()
     
     return JSONResponse(
@@ -271,3 +272,15 @@ async def refresh_access_token(request: Request, response: JSONResponse, refresh
         max_age=expires_in
     )
     return response
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout_user(request: Request, response: JSONResponse):
+    """
+    Logout the user by clearing the access and refresh tokens.
+    """
+    response.delete_cookie(key='access_token')
+    response.delete_cookie(key='refresh_token')
+    return JSONResponse(
+        content={'message': 'Logged out successfully.'},
+        status_code=status.HTTP_200_OK
+    )
