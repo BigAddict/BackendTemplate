@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
 from starlette.requests import HTTPConnection
 from fastapi.responses import JSONResponse
-from fastapi import HTTPException, Request, Depends, status
+from fastapi import HTTPException, Request, status
 from passlib.context import CryptContext
 from typing import Optional
 from sqlmodel import Session, select
@@ -52,8 +52,11 @@ async def get_device_type(request: Request) -> str:
     else:
         return "web"
     
-async def get_current_user(request: Request, session: Session = Depends(get_session)) -> Optional[User]:
+async def get_current_user(request: Request, session: Session|None = None) -> Optional[User]:
     try:
+        if session is None:
+            session = next(get_session())
+
         device_type = await get_device_type(request)
         if device_type == "web":
             token = request.cookies.get("access_token")
@@ -82,6 +85,9 @@ async def get_current_user(request: Request, session: Session = Depends(get_sess
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if session and session.is_active:
+            session.close()
     
 async def get_current_admin_user(request: Request) -> Optional[User]:
     user = await get_current_user(request)
@@ -124,3 +130,75 @@ async def get_token(data, db: Session):
             detail={'error': "Invalid Credentials"},
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+async def _verify_user_access(user: User):
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "Your account is not verified, please check your email"},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "Your account is not active, please contact support"},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+async def _get_user_token(user: User, refresh_token: str|None = None):
+    payload = {
+        "user_id": user.id,
+        "email": user.email,
+        "username": user.username
+    }
+
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = await create_access_token(payload, access_token_expires)
+    if not refresh_token:
+        refresh_token = await create_refresh_token(payload)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_in": access_token_expires.total_seconds()
+    }
+
+async def get_refresh_token(token, db: Session):
+    payload = await get_token_payload(token)
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'error': 'Invalid refresh token'},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    user = db.exec(select(User).where(User.id == user_id)).one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'error': 'User not found'},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    await _verify_user_access(user)
+    return await _get_user_token(user)
+
+async def get_token(data, db: Session):
+    user = db.exec(select(User).where(User.email == data.username)).one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={'error': 'User not found'},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    if not verify_password(data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'error': 'Invalid Credentials'},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    await _verify_user_access(user)
+
+    return await _get_user_token(user)
