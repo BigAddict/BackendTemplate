@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 from src.core.security.auth import get_password_hash, get_current_user, get_device_type
 from src.UserManagement.schemas import UserCreate, UserVerify
 from src.core.utils import send_verification_email
-from src.UserManagement.models import User, Role, TempCode
+from src.UserManagement.models import User, Role, VerificationToken
 from src.core.database import get_session
 from src.core.config import get_settings
 
@@ -59,7 +59,8 @@ async def register_user(
     session.commit()
     session.refresh(new_user)
 
-    success, message = await send_verification_email(new_user.id, new_user.email)
+    base_url = request.base_url
+    success, message = await send_verification_email(new_user.id, new_user.email, base_url)
     if not success:
         session.delete(new_user)
         session.commit()
@@ -75,9 +76,28 @@ async def register_user(
         },
     )
 
-@router.get("/verify-email")
+@router.post("/verify-email")
 async def verify_email(code: UserVerify, session: Session = Depends(get_session)):
     """
     Verify the user's email using the verification code.
     """
-    pass
+    verification_token = session.exec(select(VerificationToken).where(VerificationToken.code == code.code)).one_or_none()
+    if not verification_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid verification code!"
+        )
+    
+    user = session.exec(select(User).where(User.id == verification_token.user_id)).one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An error occured while processing your request."
+        )
+    user.is_verified = True
+    user.is_active = True
+    session.delete(verification_token)
+    session.commit()
+    return JSONResponse(
+        content={"message": "Email verified successfully"}
+    )

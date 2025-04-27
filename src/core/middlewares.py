@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 
 class DeviceTypeMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        device_type = request.headers.get('X-Device-Type').lower()
+        device_type = request.headers.get('X-Device-Type', "web").lower()
         if not device_type:
             return JSONResponse(
                 status_code=400,

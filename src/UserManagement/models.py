@@ -69,13 +69,6 @@ class UserCredential(SQLModel, table=True):
 class VerificationToken(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(index=True, unique=True)
-    code: str = Field(index=True, unique=True)
+    code: int = Field(index=True, unique=True)
     expires_at: datetime
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class TempCode(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    code: str = Field(default_factory=lambda: uuid.uuid4().hex, index=True, unique=True)
-    user_id: int = Field(index=True, foreign_key="user.id")
-    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=15))
-    created_at: datetime = Field(default_factory=datetime.now(timezone.utc))

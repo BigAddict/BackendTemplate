@@ -12,4 +12,4 @@ class UserCreate(UserBase):
     password: str
 
 class UserVerify(BaseModel):
-    code: str
+    code: int

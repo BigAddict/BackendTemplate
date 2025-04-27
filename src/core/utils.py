@@ -16,7 +16,7 @@ def generate_verification_code() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 async def create_verification_code(user_id: int, minutes_valid: int = 10) -> Tuple[str, datetime]:
-    code = generate_verification_code()
+    code = int(generate_verification_code())
     try:
         session = next(get_session())
         expires = datetime.now(timezone.utc) + timedelta(minutes=minutes_valid)
@@ -35,13 +35,14 @@ async def create_verification_code(user_id: int, minutes_valid: int = 10) -> Tup
     finally:
         session.close()
 
-async def send_verification_email(user_id: int, email: str) -> Tuple:
+async def send_verification_email(user_id: int, email: str, base_url: str) -> Tuple:
     message = EmailMessage()
     message["From"] = settings.smtp_username
     message["To"] = email
     message["Subject"] = "Verify Your Email"
     code, expires = await create_verification_code(user_id)
-    message.set_content(f"Your verification code is: {code}. It expires at {expires.strftime('%Y-%m-%d %H:%M:%S UTC')}.")
+    verification_url = f"{base_url}/user/verify-email?token={code}"
+    message.set_content(f"Your verification code is: {code}. You can also use the url below to verifiy your email. {verification_url} It expires at {expires.strftime('%Y-%m-%d %H:%M:%S UTC')}.")
 
     try:
         await aiosmtplib.send(
