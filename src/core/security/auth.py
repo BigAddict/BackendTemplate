@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
 from starlette.requests import HTTPConnection
 from fastapi.responses import JSONResponse
-from fastapi import HTTPException, Request, Depends
+from fastapi import HTTPException, Request, Depends, status
 from passlib.context import CryptContext
 from typing import Optional
 from sqlmodel import Session, select
@@ -83,6 +83,17 @@ async def get_current_user(request: Request, session: Session = Depends(get_sess
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+async def get_current_admin_user(request: Request) -> Optional[User]:
+    user = await get_current_user(request)
+
+    # Check if user is superuser
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={'error': 'User is not Admin'}
+        )
+    return user
+    
 class JWTAuth(AuthenticationBackend):
     async def authenticate(self, conn: HTTPConnection):
         try:
@@ -96,3 +107,20 @@ class JWTAuth(AuthenticationBackend):
             return AuthCredentials(["unauthenticated"]), UnauthenticatedUser()
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+        
+async def get_token(data, db: Session):
+    user = db.exec(select(User).where(User.email == data.username)).one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "User not found!"},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    if not verify_password(data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'error': "Invalid Credentials"},
+            headers={"WWW-Authenticate": "Bearer"}
+        )

@@ -5,8 +5,9 @@ from sqlmodel import Session, select
 from pydantic import EmailStr
 from typing import Optional
 
-from src.core.security.auth import get_password_hash, get_current_user, get_device_type
+from src.core.security.auth import get_password_hash, get_current_user, get_device_type, get_current_admin_user
 from src.UserManagement.schemas import UserCreate, UserVerify, UserUpdate, UserResponse
+from src.core.security.auth import OAuth2PasswordRequestForm, get   
 from src.core.utils import send_verification_email
 from src.UserManagement.models import User, Role, VerificationToken
 from src.core.database import get_session
@@ -23,7 +24,14 @@ router = APIRouter(
 )
 
 @router.get("/user/all")
-async def list_users(session : Session = Depends(get_session)):
+async def list_users(request: Request, session : Session = Depends(get_session)):
+    # Allow admin users only.
+    if not get_current_admin_user(request):
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={'error': 'You are not an admin user!'}
+        )
+
     users = session.exec(select(User)).all()
     return JSONResponse(
         content=[jsonable_encoder(UserResponse(**user.model_dump())) for user in users],
@@ -184,3 +192,12 @@ async def delete_user(
     return JSONResponse(
         content={'message': 'User deleted successfully.'}
     )
+
+@router.post("/login/")
+async def authenticate_user(
+    response: Response,
+    remember_me: Optional[bool] = False,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: Session = Depends(get_session)
+):
+    tokens = await get
