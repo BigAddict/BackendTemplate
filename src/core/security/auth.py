@@ -9,7 +9,7 @@ from typing import Optional
 from sqlmodel import Session, select
 from jose import jwt
 
-from src.UserManagement.models import User
+from src.UserManagement.models import User, UserCredential
 from src.core.config import get_settings
 from src.core.database import get_session
 
@@ -201,4 +201,12 @@ async def get_token(data, db: Session):
     
     await _verify_user_access(user)
 
-    return await _get_user_token(user)
+    user_token = await _get_user_token(user)
+
+    if not user_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'error': 'Invalid Credentials'},
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    return user_token

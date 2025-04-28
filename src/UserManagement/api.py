@@ -5,10 +5,10 @@ from sqlmodel import Session, select
 from pydantic import EmailStr
 from typing import Optional
 
-from src.core.security.auth import get_password_hash, get_current_user, get_device_type, get_current_admin_user
-from src.UserManagement.schemas import UserCreate, UserVerify, UserUpdate, UserResponse
+from src.core.security.auth import get_password_hash, get_current_user, get_device_type, get_current_admin_user, verify_password
+from src.UserManagement.schemas import UserCreate, UserVerify, UserUpdate, UserResponse, PasswordReset, PasswordChange
 from src.core.security.auth import OAuth2PasswordRequestForm, get_token, get_refresh_token
-from src.core.utils import send_verification_email
+from src.core.utils import send_verification_email, send_password_reset_email
 from src.UserManagement.models import User, Role, VerificationToken
 from src.core.database import get_session
 from src.core.config import get_settings
@@ -94,32 +94,6 @@ async def register_user(
         },
     )
 
-@router.post("/user/verify-email")
-async def verify_email(code: UserVerify, session: Session = Depends(get_session)):
-    """
-    Verify the user's email using the verification code.
-    """
-    verification_token = session.exec(select(VerificationToken).where(VerificationToken.code == code.code)).one_or_none()
-    if not verification_token:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid verification code!"
-        )
-    
-    user = session.exec(select(User).where(User.id == verification_token.user_id)).one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An error occured while processing your request."
-        )
-    user.is_verified = True
-    user.is_active = True
-    session.delete(verification_token)
-    session.commit()
-    return JSONResponse(
-        content={"message": "Email verified successfully"}
-    )
-
 @router.get("/user/me", response_model=UserResponse)
 async def get_current_user_info(request: Request, session: Session = Depends(get_session)):
     user = await get_current_user(request, session)
@@ -192,6 +166,66 @@ async def delete_user(
     
     return JSONResponse(
         content={'message': 'User deleted successfully.'}
+    )
+
+@router.post("/user/verify-email")
+async def verify_email(code: UserVerify, session: Session = Depends(get_session)):
+    """
+    Verify the user's email using the verification code.
+    """
+    verification_token = session.exec(select(VerificationToken).where(VerificationToken.code == code.code)).one_or_none()
+    if not verification_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid verification code!"
+        )
+    
+    user = session.exec(select(User).where(User.id == verification_token.user_id)).one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An error occured while processing your request."
+        )
+    user.is_verified = True
+    user.is_active = True
+    session.delete(verification_token)
+    session.commit()
+    return JSONResponse(
+        content={"message": "Email verified successfully"}
+    )
+
+@router.post("/user/verify-email/resend")
+async def resend_verification_email(
+    email: EmailStr,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    user = session.exec(select(User).where(User.email == email)).one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found!"
+        )
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User already verified!"
+        )
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User already active!"
+        )
+    base_url = request.base_url
+    success, message = await send_verification_email(user.id, user.email, base_url)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message
+        )
+    return JSONResponse(
+        content={"message": "Verification email resent successfully."},
+        status_code=status.HTTP_200_OK
     )
 
 @router.post("/login/")
@@ -282,5 +316,81 @@ async def logout_user(request: Request, response: JSONResponse):
     response.delete_cookie(key='refresh_token')
     return JSONResponse(
         content={'message': 'Logged out successfully.'},
+        status_code=status.HTTP_200_OK
+    )
+
+@router.get("/user/forgot-password")
+async def forgot_password(
+    email: EmailStr,
+    session: Session = Depends(get_session)
+):
+    user = session.exec(select(User).where(User.email == email)).one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found!"
+        )
+    
+    success, message = await send_password_reset_email(user.id, user.email)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message
+        )
+    return JSONResponse(
+        content={"message": "Password reset email sent successfully."},
+        status_code=status.HTTP_200_OK
+    )
+
+@router.post("/user/reset-password")
+async def reset_password(
+    new_password: PasswordReset,
+    session: Session = Depends(get_session)
+):
+    verification_token = session.exec(select(VerificationToken).where(VerificationToken.code == new_password.one_time_code)).one_or_none()
+    if not verification_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "Invalid one-time code!"}
+        )
+    user = session.exec(select(User).where(User.id == verification_token.user_id)).one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "User not found!"}
+        )
+    user.password_hash = get_password_hash(new_password.new_password)
+    session.delete(verification_token)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return JSONResponse(
+        content={"message": "Password reset successfully."},
+        status_code=status.HTTP_200_OK
+    )
+
+@router.get("/user/change-password")
+async def change_password(
+    new_password: PasswordChange,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    user = await get_current_user(request, session)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={'error': 'User not found.'}
+        )
+    if not verify_password(new_password.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={'error': 'Current password is incorrect.'}
+        )
+    user.password_hash = get_password_hash(new_password.new_password)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return JSONResponse(
+        content={"message": "Password changed successfully."},
         status_code=status.HTTP_200_OK
     )

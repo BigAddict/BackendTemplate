@@ -24,3 +24,11 @@ class UserResponse(BaseModel):
     email: EmailStr
     phone_number: PhoneNumber
     created_at: datetime
+
+class PasswordReset(BaseModel):
+    one_time_code: str
+    new_password: str
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str

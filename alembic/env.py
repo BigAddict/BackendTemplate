@@ -4,9 +4,18 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from dotenv import load_dotenv
+import os
 
 from sqlmodel import SQLModel
 from src.UserManagement.models import User, Role, Permission, RolePermissionLink, UserCredential, UserRoleLink, VerificationToken
+
+load_dotenv()
+
+# Get the database URL from environment variables
+DB_URL = os.getenv("DATABASE_URL")
+if DB_URL is None:
+    raise ValueError("DATABASE_URL not found in environment variables")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,6 +25,8 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+config.set_main_option("sqlalchemy.url", DB_URL)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
