@@ -28,6 +28,13 @@ class UserNotFound(HTTPException):
             detail="User not found."
         )
 
+class NotAdminUser(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not an admin."
+        )
+
 class InvalidCredentials(HTTPException):
     def __init__(self):
         super().__init__(
@@ -61,4 +68,11 @@ class TokenExpired(HTTPException):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired."
+        )
+
+class RoleNotFound(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role not found."
         )

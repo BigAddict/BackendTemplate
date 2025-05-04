@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 from src.core.init_db import create_db_and_tables, seed_roles_and_permissions
-from src.UserManagement.api import router as user_router
+from src.UserManagement.routers import router as user_router
 from src.core.middlewares import DeviceTypeMiddleware
 from src.core.config import AppLogging, get_settings
 from src.core.security.auth import JWTAuth

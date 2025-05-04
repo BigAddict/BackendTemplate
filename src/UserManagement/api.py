@@ -7,6 +7,9 @@ from typing import Optional
 
 from src.core.security.auth import get_password_hash, get_current_user, get_device_type, get_current_admin_user, verify_password
 from src.UserManagement.schemas import UserCreate, UserVerify, UserUpdate, UserResponse, PasswordReset, PasswordChange
+from src.Exceptions.core_exceptions import SystemError
+from src.Exceptions.user_exceptions import NotAdminUser, UserNotFound
+from src.UserManagement.services.user_service import create_user, get_all_users, get_user_by_email, get_user_by_username, get_user_by_phone, update_user_details
 from src.core.security.auth import OAuth2PasswordRequestForm, get_token, get_refresh_token
 from src.core.utils import send_verification_email, send_password_reset_email
 from src.UserManagement.models import User, Role, VerificationToken
@@ -27,145 +30,41 @@ router = APIRouter(
 async def list_users(request: Request, session : Session = Depends(get_session)):
     # Allow admin users only.
     if not await get_current_admin_user(request):
-        return HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={'error': 'You are not an admin user!'}
-        )
+        raise NotAdminUser()
 
-    users = session.exec(select(User)).all()
+    users = await get_all_users(session)
+
     return JSONResponse(
         content=[jsonable_encoder(UserResponse(**user.model_dump())) for user in users],
         status_code=status.HTTP_200_OK
     )
 
-@router.post("/user/", status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user: UserCreate,
-    request: Request,
-    response: Response,
-    session: Session = Depends(get_session),
-    device: str = Depends(get_device_type)
-):
-    """
-    Register a new user and send a verification email.
-    """
-    # Check if the user already exists
-    existing_user = session.exec(select(User).where(User.email == user.email)).one_or_none()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    existing_user = session.exec(select(User).where(User.username == user.username)).one_or_none()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
-
-    # Create a new user instance
-    new_user = User(
-        username=user.username,
-        email=user.email,
-        phone_number=user.phone_number,
-        password_hash=get_password_hash(user.password),
-        is_active=False,
-        is_superuser=False,
-        is_verified=False,
-    )
-    
-    role = session.exec(select(Role).where(Role.name == "User")).one_or_none()
-    if not role:
-        raise HTTPException(status_code=400, detail="Role not found")
-    new_user.roles.append(role)
-
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-
-    base_url = request.base_url
-    success, message = await send_verification_email(new_user.id, new_user.email, base_url)
-    if not success:
-        session.delete(new_user)
-        session.commit()
-        raise HTTPException(status_code=500, detail=message)
-    
-    if device == "web":
-        response.set_cookie(key="temp_code")
-
-    return JSONResponse(
-        status_code=status.HTTP_201_CREATED,
-        content={
-            "message": "User registered successfully. Please check your email to verify your account."
-        },
-    )
-
-@router.get("/user/me", response_model=UserResponse)
-async def get_current_user_info(request: Request, session: Session = Depends(get_session)):
-    user = await get_current_user(request, session)
-    return jsonable_encoder(UserResponse(**user.model_dump()))
-
 @router.get("/user/")
-async def get_user_by_email_or_username(
+async def get_user_by_email_or_username_or_phone(
+    request: Request,
     email: Optional[str] = None,
     username: Optional[str] = None,
+    phone: Optional[str] = None,
     session: Session = Depends(get_session)    
 ):
-    if not email and not username:
-        return HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="{'error': 'No email or username provided. Please try again!'}"
-        )
+    if not await get_current_admin_user(request):
+        raise NotAdminUser()
     
     if email:
-        user = session.exec(select(User).where(User.email == email)).one_or_none()
-        if user:
-            return jsonable_encoder(UserResponse(**user.model_dump()))
-        
-    if username:
-        user = session.exec(select(User).where(User.username == username)).one_or_none()
-        if user:
-            return jsonable_encoder(UserResponse(**user.model_dump()))
-        
+        user = await get_user_by_email(email, session)
+    elif username:
+        user = await get_user_by_username(username, session)
+    elif phone:
+        user = await get_user_by_phone(phone, session)
+    else:
+        raise SystemError("Please provide an email, username, or phone number to search for a user.")
+    
+    if not user:
+        raise UserNotFound()
+    
     return JSONResponse(
-        content={},
+        content=jsonable_encoder(UserResponse(**user.model_dump())),
         status_code=status.HTTP_200_OK
-    )
-
-@router.patch("/user/", response_model=UserResponse)
-async def update_user(
-    new_details: UserUpdate,
-    request: Request,
-    session: Session = Depends(get_session)
-):
-    user = await get_current_user(request)
-    if not user:
-        return HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={'error': 'User not found.'}
-        )
-    
-    for key, value in new_details.model_dump(exclude_unset=True).items():
-        setattr(user, key, value)
-
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-
-    return jsonable_encoder(UserResponse(**user.model_dump()))
-
-@router.delete("/user/", response_model=UserResponse)
-async def delete_user(
-    request: Request,
-    session: Session = Depends(get_session)
-):
-    user = await get_current_user(request)
-    if not user:
-        return HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={'error': 'User not found.'}
-        )
-    
-    user.is_active = False
-    user.is_verified = False
-    session.commit()
-    
-    return JSONResponse(
-        content={'message': 'User deleted successfully.'}
     )
 
 @router.post("/user/verify-email")
@@ -306,18 +205,6 @@ async def refresh_access_token(request: Request, response: JSONResponse, refresh
         max_age=expires_in
     )
     return response
-
-@router.post("/logout", status_code=status.HTTP_200_OK)
-async def logout_user(request: Request, response: JSONResponse):
-    """
-    Logout the user by clearing the access and refresh tokens.
-    """
-    response.delete_cookie(key='access_token')
-    response.delete_cookie(key='refresh_token')
-    return JSONResponse(
-        content={'message': 'Logged out successfully.'},
-        status_code=status.HTTP_200_OK
-    )
 
 @router.get("/user/forgot-password")
 async def forgot_password(
