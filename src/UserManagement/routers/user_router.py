@@ -3,10 +3,10 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
 
-from src.core.security.auth import get_password_hash, get_current_user, get_current_admin_user, verify_password
 from src.UserManagement.schemas import UserCreate, UserUpdate, UserResponse
 from src.UserManagement.services.user_service import create_user, update_user_details
 from src.Exceptions.user_exceptions import UserNotFound
+from src.core.security.auth import get_current_user
 from src.core.utils import send_verification_email
 from src.core.database import get_session
 from src.core.config import get_settings

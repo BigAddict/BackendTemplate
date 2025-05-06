@@ -19,6 +19,11 @@ class UserUpdate(BaseModel):
     email: EmailStr
     phone_number: PhoneNumber
 
+class UserRead(BaseModel):
+    email: Optional[str]
+    username: Optional[str]
+    phone_number: Optional[str]
+
 class UserResponse(BaseModel):
     username: str
     email: EmailStr
@@ -32,3 +37,10 @@ class PasswordReset(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str
+
+class AdminCreateUser(BaseModel):
+    email: str
+    username: str
+    phone_number: PhoneNumber
+    password: str
+    is_superuser: bool

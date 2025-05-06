@@ -92,3 +92,10 @@ async def update_user_details(new_details: UserUpdate, current_user: User, sessi
         return current_user
     except SQLAlchemyError as e:
         raise e
+    
+async def delete_user(user: User, session: Session) -> None:
+    try:
+        session.delete(user)
+        session.commit()
+    except SQLAlchemyError as e:
+        raise e
