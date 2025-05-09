@@ -1,11 +1,12 @@
 from starlette.middleware.authentication import AuthenticationMiddleware
 from contextlib import asynccontextmanager
+from fastapi_offline import FastAPIOffline
 from fastapi import FastAPI, APIRouter
 
 from src.core.init_db import create_db_and_tables, seed_roles_and_permissions
 from src.UserManagement.routers import router as user_router
 from src.core.middlewares import DeviceTypeMiddleware
-from src.core.config import AppLogging, get_settings
+from src.core.config import AppLogging, get_settings, is_online
 from src.core.security.auth import JWTAuth
 
 @asynccontextmanager
@@ -16,10 +17,19 @@ async def lifespan(app: FastAPI):
 
 settings = get_settings()
 
-app = FastAPI(title=settings.application_name,
-              version=settings.application_version,
-              docs_url="/docs",
-              lifespan=lifespan)
+if is_online:
+    print("Running in online mode")
+    app = FastAPI(title=settings.application_name,
+                version=settings.application_version,
+                docs_url="/docs",
+                lifespan=lifespan)
+else:
+    print("Running in offline mode!")
+    app = FastAPIOffline(
+        title=settings.application_name,
+        version=settings.application_version,
+        lifespan=lifespan
+    )
 
 app.add_middleware(DeviceTypeMiddleware)
 app.add_middleware(AuthenticationMiddleware, backend=JWTAuth())

@@ -30,7 +30,7 @@ async def add_user(
     )
 
 @router.get("/user/all")
-async def get_all_users(
+async def get_all_users_info(
     session: Session = Depends(get_session)
 ) -> JSONResponse:
     """
@@ -42,7 +42,7 @@ async def get_all_users(
         content=(jsonable_encoder([UserResponse(**user.model_dump()) for user in users]))
     )
 
-@router.get("/user")
+@router.post("/user")
 async def get_user_info(
     user_details: UserRead,
     session: Session = Depends(get_session)

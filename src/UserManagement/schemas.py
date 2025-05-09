@@ -44,3 +44,8 @@ class AdminCreateUser(BaseModel):
     phone_number: PhoneNumber
     password: str
     is_superuser: bool
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    expires_in: int

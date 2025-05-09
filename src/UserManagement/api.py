@@ -26,47 +26,6 @@ router = APIRouter(
     },
 )
 
-@router.get("/user/all")
-async def list_users(request: Request, session : Session = Depends(get_session)):
-    # Allow admin users only.
-    if not await get_current_admin_user(request):
-        raise NotAdminUser()
-
-    users = await get_all_users(session)
-
-    return JSONResponse(
-        content=[jsonable_encoder(UserResponse(**user.model_dump())) for user in users],
-        status_code=status.HTTP_200_OK
-    )
-
-@router.get("/user/")
-async def get_user_by_email_or_username_or_phone(
-    request: Request,
-    email: Optional[str] = None,
-    username: Optional[str] = None,
-    phone: Optional[str] = None,
-    session: Session = Depends(get_session)    
-):
-    if not await get_current_admin_user(request):
-        raise NotAdminUser()
-    
-    if email:
-        user = await get_user_by_email(email, session)
-    elif username:
-        user = await get_user_by_username(username, session)
-    elif phone:
-        user = await get_user_by_phone(phone, session)
-    else:
-        raise SystemError("Please provide an email, username, or phone number to search for a user.")
-    
-    if not user:
-        raise UserNotFound()
-    
-    return JSONResponse(
-        content=jsonable_encoder(UserResponse(**user.model_dump())),
-        status_code=status.HTTP_200_OK
-    )
-
 @router.post("/user/verify-email")
 async def verify_email(code: UserVerify, session: Session = Depends(get_session)):
     """
@@ -83,7 +42,7 @@ async def verify_email(code: UserVerify, session: Session = Depends(get_session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An error occured while processing your request."
+            detail="An error occurred while processing your request."
         )
     user.is_verified = True
     user.is_active = True

@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from jose import jwt
 
 from src.UserManagement.models import User, UserCredential
+from src.UserManagement.schemas import TokenResponse
 from src.core.config import get_settings
 from src.core.database import get_session
 
@@ -67,7 +68,7 @@ async def get_current_user(request: Request, session: Session|None = None) -> Op
             token = auth_header.replace("Bearer ", "")
         
         if not token:
-            raise HTTPException(status_code=401, detail="No access token provided")
+            raise HTTPException(status_code=401, detail="Please login to continue!")
         
         payload = await get_token_payload(token)
         if not payload or not isinstance(payload, dict):
@@ -180,7 +181,8 @@ async def get_refresh_token(token, db: Session):
             headers={"WWW-Authenticate": "Bearer"}
         )
     await _verify_user_access(user)
-    return await _get_user_token(user)
+    user_token = await _get_user_token(user)
+    return TokenResponse(**user_token)
 
 async def get_token(data, db: Session):
     user = db.exec(select(User).where(User.email == data.username)).one_or_none()
@@ -209,4 +211,4 @@ async def get_token(data, db: Session):
             detail={'error': 'Invalid Credentials'},
             headers={"WWW-Authenticate": "Bearer"}
         )
-    return user_token
+    return TokenResponse(**user_token)

@@ -35,6 +35,20 @@ class UserNotFound(HTTPException):
             detail="User not found."
         )
 
+class UserAlreadyVerified(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already verified."
+        )
+
+class UserAlreadyActive(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already active."
+        )
+
 class NotAdminUser(HTTPException):
     def __init__(self):
         super().__init__(

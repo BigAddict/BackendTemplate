@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
+import requests
 from pathlib import Path
 import logging
 import os
@@ -54,3 +55,11 @@ class AppLogging:
             return logging.debug(message)
         else:
             return logging.warning(f"Unsupported log level: {level}. Message: {message}")
+        
+def is_online() -> bool:
+    url = "https://google.com/"
+    request = requests.get(url)
+    if request.ok:
+        return True
+    else:
+        return False
