@@ -121,7 +121,7 @@ async def refresh_access_token(
     except Exception as e:
         raise SystemError(e)
     
-@router.post("forgot-password")
+@router.post("/forgot-password")
 async def user_forgot_password(
     email: EmailStr,
     session: Session = Depends(get_session)
@@ -142,7 +142,7 @@ async def user_forgot_password(
     except Exception as e:
         raise SystemError(e)
     
-@router.post("reset-password")
+@router.post("/reset-password")
 async def reset_password(
     new_password: PasswordReset,
     session: Session = Depends(get_session)
@@ -159,7 +159,7 @@ async def reset_password(
     except Exception as e:
         raise SystemError(e)
     
-@router.post("change-password")
+@router.post("/change-password")
 async def change_password(
     new_password: PasswordChange,
     request: Request,

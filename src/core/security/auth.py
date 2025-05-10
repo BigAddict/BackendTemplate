@@ -82,8 +82,6 @@ async def get_current_user(request: Request, session: Session|None = None) -> Op
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail={"error": "User not found or inactive"})
         return user
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": str(e)})
     finally:
         if session and session.is_active:
             session.close()

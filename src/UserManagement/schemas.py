@@ -1,5 +1,5 @@
 from pydantic_extra_types.phone_numbers import PhoneNumber
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
@@ -43,7 +43,10 @@ class AdminCreateUser(BaseModel):
     username: str
     phone_number: PhoneNumber
     password: str
-    is_superuser: bool
+    is_superuser: Optional[bool] = False
+
+class AdminUpdateUser(UserUpdate):
+    is_superuser: Optional[bool] = False
 
 class TokenResponse(BaseModel):
     access_token: str

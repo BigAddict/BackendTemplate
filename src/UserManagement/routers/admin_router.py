@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
 
-from src.UserManagement.schemas import UserCreate, UserUpdate, UserResponse, UserRead
+from src.UserManagement.schemas import AdminCreateUser, AdminUpdateUser, UserResponse, UserRead
 from src.UserManagement.services.admin_service import create_user, update_user, get_user, get_all_users
 from src.core.security.auth import get_current_user, get_current_admin_user
 from src.core.database import get_session
@@ -11,10 +11,9 @@ from src.UserManagement.models import User
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(get_current_admin_user)])
 
-@router.post("/user")
+@router.post("/user/add")
 async def add_user(
-    new_user: UserCreate,
-    request: Request,
+    new_user: AdminCreateUser,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
     """
@@ -63,7 +62,7 @@ async def get_user_info(
 
 @router.patch("/user")
 async def update_user_details(
-    user_details: UserUpdate,
+    user_details: AdminUpdateUser,
     request: Request,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
