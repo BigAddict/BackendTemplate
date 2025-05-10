@@ -2,8 +2,8 @@ from sqlmodel import Session, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.UserManagement.models import User, VerificationToken
-from src.Exceptions.auth_exceptions import InvalidVerificationCode
-from src.Exceptions.core_exceptions import SystemError
+from src.exceptions.auth_exceptions import InvalidVerificationCode
+from src.exceptions.core_exceptions import SystemError
 from src.core.security.auth import get_password_hash
 
 async def get_verification_token(

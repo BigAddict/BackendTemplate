@@ -8,9 +8,9 @@ from typing import Optional
 from src.core.database import get_session
 from src.UserManagement.schemas import UserVerify, TokenResponse, PasswordReset, PasswordChange
 from src.UserManagement.services.auth_service import verify_email_code, get_user_by_verification_token, change_user_password
-from src.Exceptions.core_exceptions import SystemError
-from src.Exceptions.user_exceptions import UserNotFound, UserAlreadyVerified, InvalidCredentials
-from src.Exceptions.auth_exceptions import InvalidRefreshToken
+from src.exceptions.core_exceptions import SystemError
+from src.exceptions.user_exceptions import UserNotFound, UserAlreadyVerified, InvalidCredentials
+from src.exceptions.auth_exceptions import InvalidRefreshToken
 from src.UserManagement.services.user_service import get_user_by_email
 from src.core.utils import send_verification_email, send_password_reset_email
 from src.core.security.auth import OAuth2PasswordRequestForm, get_token, get_refresh_token, get_current_user, verify_password

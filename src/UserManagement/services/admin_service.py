@@ -3,7 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 from pydantic import EmailStr
 
-from src.Exceptions.user_exceptions import EmailAlreadyExists, UsernameAlreadyExists, PhoneAlreadyExists, RoleNotFound, UserAlreadyExists
+from src.exceptions.user_exceptions import EmailAlreadyExists, UsernameAlreadyExists, PhoneAlreadyExists, RoleNotFound, UserAlreadyExists
 from src.UserManagement.schemas import AdminCreateUser, UserRead, UserUpdate
 from src.UserManagement.models import User, Role
 from src.core.security.auth import get_password_hash

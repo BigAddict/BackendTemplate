@@ -1,6 +1,6 @@
 from fastapi import status
 
-from src.Exceptions.core_exceptions import HTTPExceptionCustom
+from src.exceptions.core_exceptions import HTTPExceptionCustom
 
 class InvalidVerificationCode(HTTPExceptionCustom):
     def __init__(self, message: str = "Invalid verification code. Please try again."):

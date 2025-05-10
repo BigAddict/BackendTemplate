@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.UserManagement.schemas import UserCreate, UserUpdate
 from src.UserManagement.models import User, Role, UserCredential, VerificationToken
-from src.Exceptions.user_exceptions import EmailAlreadyExists, UsernameAlreadyExists, PhoneAlreadyExists, RoleNotFound
+from src.exceptions.user_exceptions import EmailAlreadyExists, UsernameAlreadyExists, PhoneAlreadyExists, RoleNotFound
 from src.core.security.auth import get_password_hash
 
 async def get_user_by_email(email:EmailStr, session: Session) -> Optional[User]:

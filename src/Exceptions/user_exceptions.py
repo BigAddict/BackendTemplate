@@ -1,6 +1,6 @@
 from fastapi import status
 
-from src.Exceptions.core_exceptions import HTTPExceptionCustom
+from src.exceptions.core_exceptions import HTTPExceptionCustom
 class EmailAlreadyExists(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(

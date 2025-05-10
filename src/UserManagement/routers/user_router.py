@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from src.UserManagement.schemas import UserCreate, UserUpdate, UserResponse
 from src.UserManagement.services.user_service import create_user, update_user_details
-from src.Exceptions.user_exceptions import UserNotFound
+from src.exceptions.user_exceptions import UserNotFound
 from src.core.security.auth import get_current_user
 from src.core.utils import send_verification_email
 from src.core.database import get_session

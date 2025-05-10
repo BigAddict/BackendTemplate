@@ -1,8 +1,11 @@
+from logging.handlers import RotatingFileHandler
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
-import requests
+from typing import Literal
 from pathlib import Path
+import requests
 import logging
+import json
 import os
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
@@ -17,8 +20,8 @@ class Setting(BaseSettings):
     application_name: str = os.getenv("APP_NAME")
     application_version: str = os.getenv("APP_VERSION")
     application_description: str = os.getenv("APP_DESCRIPTION")
-    logging_level: str = os.getenv("LOGGING_LEVEL")
     logging_format: str = os.getenv("LOGGING_FORMAT")
+    logging_file: str = os.getenv("LOGGING_FILE", "app.log")
     logging_enabled: bool = os.getenv("LOGGING_ENABLED")
 
     smtp_server: str = os.getenv("SMTP_SERVER")
@@ -31,30 +34,68 @@ def get_settings():
 
 app_settings = Setting()
 
-class AppLogging:
-    def __init__(self):
-        logging_level = app_settings.logging_level
-        logging_format = app_settings.logging_format
+class AppLogger:
+    _instance = None
 
-        if app_settings.logging_enabled:
-            logging.basicConfig(
-                level=logging_level,
-                format=logging_format,
-            )
-            logging.info("Logging is enabled")
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(AppLogger, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
-    @staticmethod
-    def log_message(level: str, message: str):
-        if level.lower() == "info":
-            return logging.info(message)
-        elif level.lower() == "warning":
-            return logging.warning(message)
-        elif level.lower() == "error":
-            return logging.error(message)
-        elif level.lower() == "debug":
-            return logging.debug(message)
-        else:
-            return logging.warning(f"Unsupported log level: {level}. Message: {message}")
+    def __init__(
+            self,
+            log_dir: str = "logs",
+            log_file: str = app_settings.logging_file,
+            max_bytes: int = 5 * 1024 * 1024,
+            backup_count: int = 5
+    ):
+        if self._initialized:
+            return
+
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_file = self.log_dir / log_file
+
+        self.logger = logging.getLogger("app_logger")
+        self.logger.setLevel(logging.INFO)
+        self.logger.handlers = []
+
+        file_handler = RotatingFileHandler(
+            self.log_file,
+            maxBytes=max_bytes,
+            backupCount=backup_count
+        )
+        file_handler.setFormatter(self._get_json_formatter())
+        self.logger.addHandler(file_handler)
+
+        self._initialized = True
+
+    def _get_json_formatter(self) -> logging.Formatter:
+        class JsonFormatter(logging.Formatter):
+            def format(self, record):
+                log_record = {
+                    "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+                    "level": record.levelname,
+                    "message": record.getMessage(),
+                    "module": record.module,
+                    "function": record.funcName,
+                    "line": record.lineno
+                }
+                return json.dumps(log_record)
+        return JsonFormatter()
+
+    LEVEL = Literal['debug', 'info', 'warning', 'error', 'critical']
+
+    def log_message(self, level: LEVEL, message: str):
+        log_method = getattr(self.logger, level.lower(), self.logger.warning)
+        log_method(message)
+
+logger_instance = AppLogger()
+
+# Expose log_message function
+def log_message(level: AppLogger.LEVEL, message: str):
+    logger_instance.log_message(level, message)
         
 def is_online() -> bool:
     url = "https://google.com/"
