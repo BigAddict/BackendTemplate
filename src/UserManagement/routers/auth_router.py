@@ -30,11 +30,9 @@ async def verify_email(
             return JSONResponse(
                 content={"message": "Email verified successfully"}
             )
-    except HTTPException as e:
-        raise e
     except Exception as e:
         raise SystemError(
-            message="An error occurred while processing your request."
+            "An error occurred while processing your request."
         )
     
 @router.post("/verify-email/resend")

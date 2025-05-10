@@ -73,13 +73,6 @@ async def create_user(
         return new_user
     except SQLAlchemyError as e:
         raise e
-
-async def get_all_users(session: Session) -> list[User]:
-    try:
-        result = session.exec(select(User)).all()
-        return result
-    except SQLAlchemyError as e:
-        raise e
     
 async def update_user_details(new_details: UserUpdate, current_user: User, session: Session) -> User:
     try:

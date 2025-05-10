@@ -1,99 +1,100 @@
-from fastapi import HTTPException, status
+from fastapi import status
 
-class EmailAlreadyExists(HTTPException):
+from src.Exceptions.core_exceptions import HTTPExceptionCustom
+class EmailAlreadyExists(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists."
+            status.HTTP_400_BAD_REQUEST,
+            "User with this email already exists."
         )
 
-class UsernameAlreadyExists(HTTPException):
+class UsernameAlreadyExists(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken."
+            status.HTTP_400_BAD_REQUEST,
+            "Username already taken."
         )
     
-class PhoneAlreadyExists(HTTPException):
+class PhoneAlreadyExists(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this phone number already exists."
+            status.HTTP_400_BAD_REQUEST,
+            "User with this phone number already exists."
         )
 
-class UserAlreadyExists(HTTPException):
+class UserAlreadyExists(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already exists"
+            status.HTTP_400_BAD_REQUEST,
+            "User already exists"
         )
 
-class UserNotFound(HTTPException):
+class UserNotFound(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            status.HTTP_404_NOT_FOUND,
+            "User not found."
         )
 
-class UserAlreadyVerified(HTTPException):
+class UserAlreadyVerified(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already verified."
+            status.HTTP_400_BAD_REQUEST,
+            "User is already verified."
         )
 
-class UserAlreadyActive(HTTPException):
+class UserAlreadyActive(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already active."
+            status.HTTP_400_BAD_REQUEST,
+            "User is already active."
         )
 
-class NotAdminUser(HTTPException):
+class NotAdminUser(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not an admin."
+            status.HTTP_403_FORBIDDEN,
+            "User is not an admin."
         )
 
-class InvalidCredentials(HTTPException):
+class InvalidCredentials(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials."
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid credentials."
         )
 
-class UserNotVerified(HTTPException):
+class UserNotVerified(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User not verified."
         )
 
-class UserInactive(HTTPException):
+class UserInactive(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is inactive."
+            status.HTTP_403_FORBIDDEN,
+            "User is inactive."
         )
 
-class InvalidToken(HTTPException):
+class InvalidToken(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token."
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid token."
         )
 
-class TokenExpired(HTTPException):
+class TokenExpired(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired."
+            status.HTTP_401_UNAUTHORIZED,
+            "Token has expired."
         )
 
-class RoleNotFound(HTTPException):
+class RoleNotFound(HTTPExceptionCustom):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role not found."
+            status.HTTP_404_NOT_FOUND,
+            "Role not found."
         )

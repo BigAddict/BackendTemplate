@@ -23,9 +23,9 @@ async def get_verification_token(
 
         return verification_token
     except SQLAlchemyError as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
     except Exception as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
 
 async def get_user_by_verification_token(
         code: str,
@@ -46,9 +46,9 @@ async def get_user_by_verification_token(
 
         return user
     except SQLAlchemyError as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
     except Exception as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
 
 async def delete_verification_token(
         code: str,
@@ -65,9 +65,9 @@ async def delete_verification_token(
 
         return True
     except SQLAlchemyError as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
     except Exception as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
 
 async def verify_email_code(
         code: str,
@@ -92,9 +92,9 @@ async def verify_email_code(
 
         return True
     except SQLAlchemyError as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
     except Exception as e:
-        raise SystemError(message="An error occurred while processing your request.")
+        raise SystemError("An error occurred while processing your request.")
     
 async def change_user_password(
     user: User,

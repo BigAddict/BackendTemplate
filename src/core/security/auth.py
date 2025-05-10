@@ -38,11 +38,11 @@ async def get_token_payload(token: str):
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
+        raise HTTPException(status_code=401, detail={"error": "Token has expired"})
     except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail={"error": "Invalid token"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail={"error": str(e)})
     
 async def get_device_type(request: Request) -> str:
     device_type = request.headers.get('X-Device-Type', "web").lower()
@@ -64,28 +64,26 @@ async def get_current_user(request: Request, session: Session|None = None) -> Op
         else:
             auth_header = request.headers.get("Authorization")
             if not auth_header or not auth_header.startswith("Bearer "):
-                raise HTTPException(status_code=401, detail="Missing or Invalid token")
+                raise HTTPException(status_code=401, detail={"error": "Missing or Invalid token"})
             token = auth_header.replace("Bearer ", "")
         
         if not token:
-            raise HTTPException(status_code=401, detail="Please login to continue!")
+            raise HTTPException(status_code=401, detail={"error": "Please login to continue!"})
         
         payload = await get_token_payload(token)
         if not payload or not isinstance(payload, dict):
-            raise HTTPException(status_code=401, detail="Invalid token payload")
+            raise HTTPException(status_code=401, detail={"error": "Invalid token payload"})
         
         user_id = payload.get("user_id")
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
+            raise HTTPException(status_code=401, detail={"error": "Invalid token payload"})
         
         user = session.exec(select(User).where(User.id == user_id)).one_or_none()
         if not user or not user.is_active:
-            raise HTTPException(status_code=401, detail="User not found or inactive")
+            raise HTTPException(status_code=401, detail={"error": "User not found or inactive"})
         return user
-    except HTTPException as e:
-        raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail={"error": str(e)})
     finally:
         if session and session.is_active:
             session.close()
@@ -113,7 +111,7 @@ class JWTAuth(AuthenticationBackend):
         except HTTPException as e:
             return AuthCredentials(["unauthenticated"]), UnauthenticatedUser()
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail={"error": str(e)})
         
 async def get_token(data, db: Session):
     user = db.exec(select(User).where(User.email == data.username)).one_or_none()
