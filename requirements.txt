@@ -1,0 +1,15 @@
+fastapi
+pydantic[email]
+pydantic-settings
+python-dotenv
+pydantic-extra-types
+uvicorn
+sqlmodel
+passlib[bcrypt]
+python-jose[cryptography]
+aiosmtplib
+phonenumbers
+alembic
+python-multipart
+fastapi-offline
+requests
